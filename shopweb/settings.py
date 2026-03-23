@@ -137,3 +137,6 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'nmhuy396@gmail.com'
 EMAIL_HOST_PASSWORD = 'xwhueauhyatstldf'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+INSTALLED_APPS += ['cloudinary', 'cloudinary_storage']
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
