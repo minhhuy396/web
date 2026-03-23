@@ -172,3 +172,20 @@ nav a:hover {
 .top-bar {
     height: 90px;
 }
+.top-announcement-bar {
+    background: linear-gradient(to right, #4b7d3e, #6fae4a);
+    color: white;
+    padding: 8px 0;
+    font-size: 14px;
+    text-align: center;
+}
+
+.delivery-text {
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+/* Hover nhẹ */
+.top-announcement-bar:hover {
+    opacity: 0.95;
+}

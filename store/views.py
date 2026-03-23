@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 
-from .models import Product, Cart, CartItem, OrderItem, Order, Category
+from .models import Product, ProductImage, Cart, CartItem, OrderItem, Order, Category
 
 
 # =========================
@@ -22,12 +22,12 @@ def home(request):
 
     categories = Category.objects.filter(parent=None)
 
-    context = {
+    return render(request, 'home.html', {
         'products': products,
         'categories': categories
-    }
+    })
 
-    return render(request,'home.html',context)
+
 # =========================
 # Trang thông tin
 # =========================
@@ -43,11 +43,16 @@ def contact(request):
 
 
 # =========================
-# Chi tiết sản phẩm
+# Chi tiết sản phẩm (nhiều ảnh)
 # =========================
 def product_detail(request, id):
     product = get_object_or_404(Product, id=id)
-    return render(request, 'product_detail.html', {'product': product})
+    images = product.images.all()
+
+    return render(request, 'product_detail.html', {
+        'product': product,
+        'images': images
+    })
 
 
 # =========================
@@ -56,7 +61,6 @@ def product_detail(request, id):
 def login_view(request):
 
     if request.method == "POST":
-
         username = request.POST['username']
         password = request.POST['password']
 
@@ -75,7 +79,6 @@ def login_view(request):
 def register_view(request):
 
     if request.method == "POST":
-
         username = request.POST['username']
         password = request.POST['password']
 
@@ -101,7 +104,6 @@ def logout_view(request):
 def add_to_cart(request, product_id):
 
     product = get_object_or_404(Product, id=product_id)
-
     quantity = int(request.POST.get('quantity', 1))
 
     cart, created = Cart.objects.get_or_create(user=request.user)
@@ -122,18 +124,39 @@ def add_to_cart(request, product_id):
 
 
 # =========================
+# ⭐ MUA NGAY (QUAN TRỌNG)
+# =========================
+@login_required
+def buy_now(request, product_id):
+
+    product = get_object_or_404(Product, id=product_id)
+
+    # tạo hoặc lấy giỏ hàng
+    cart, created = Cart.objects.get_or_create(user=request.user)
+
+    # xóa hết giỏ cũ (để chỉ mua 1 sản phẩm)
+    CartItem.objects.filter(cart=cart).delete()
+
+    # thêm sản phẩm mới
+    CartItem.objects.create(
+        cart=cart,
+        product=product,
+        quantity=1
+    )
+
+    return redirect('checkout')
+
+
+# =========================
 # Trang giỏ hàng
 # =========================
 @login_required
 def cart_view(request):
 
     cart, created = Cart.objects.get_or_create(user=request.user)
-
     items = CartItem.objects.filter(cart=cart)
 
-    total = 0
-    for item in items:
-        total += item.product.price * item.quantity
+    total = sum(item.product.price * item.quantity for item in items)
 
     return render(request, 'cart.html', {
         'items': items,
@@ -142,7 +165,7 @@ def cart_view(request):
 
 
 # =========================
-# Checkout + tạo đơn hàng + gửi email
+# Checkout
 # =========================
 @login_required
 def checkout(request):
@@ -150,9 +173,7 @@ def checkout(request):
     cart = Cart.objects.get(user=request.user)
     items = CartItem.objects.filter(cart=cart)
 
-    total = 0
-    for item in items:
-        total += item.product.price * item.quantity
+    total = sum(item.product.price * item.quantity for item in items)
 
     if request.method == "POST":
 
@@ -190,7 +211,6 @@ Sản phẩm:
 
         message += f"\n💰 Tổng tiền: {total} đ"
 
-        # gửi email
         send_mail(
             "📦 Đơn hàng mới",
             message,
@@ -210,28 +230,29 @@ Sản phẩm:
 
 
 # =========================
-# Trang đặt hàng thành công
+# Thành công
 # =========================
 def order_success(request):
     return render(request, 'order_success.html')
 
 
 # =========================
-# Xóa sản phẩm khỏi giỏ
+# Xóa khỏi giỏ
 # =========================
 def remove_from_cart(request, item_id):
     item = get_object_or_404(CartItem, id=item_id)
     item.delete()
     return redirect('cart')
+
+
 # =========================
-# Sản phẩm theo danh mục
+# Theo danh mục
 # =========================
 def category_products(request, category_id):
 
     category = get_object_or_404(Category, id=category_id)
 
     products = Product.objects.filter(category=category)
-
     categories = Category.objects.all()
 
     return render(request, 'home.html', {
@@ -239,8 +260,10 @@ def category_products(request, category_id):
         'products': products,
         'selected_category': category
     })
+
+
 # =========================
-# Tìm kiêm sản phẩm
+# Tìm kiếm
 # =========================
 def search(request):
     keyword = request.GET.get('keyword')
@@ -250,4 +273,7 @@ def search(request):
     else:
         products = Product.objects.none()
 
-    return render(request, 'search.html', {'products': products, 'keyword': keyword})
+    return render(request, 'search.html', {
+        'products': products,
+        'keyword': keyword
+    })
